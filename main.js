@@ -2,6 +2,28 @@ import axios from 'axios';
 import puppeteer from 'puppeteer';
 import cheerio from 'cheerio';
 import fs from 'fs';
+import csvWriter from 'csv-writer'
+
+class Logger {
+    constructor(name, folderName) {
+        // this.init(name, folderName)
+        return new Promise(async (resolve, reject) => {
+            if (!(await fs.existsSync(folderName))) {
+                await fs.mkdirSync(folderName)
+            }
+            const fullPath = `./${folderName}/${name}.log`
+            if (await fs.existsSync(fullPath)) {
+                await fs.unlinkSync(fullPath)
+            }
+            const stream = fs.createWriteStream(fullPath, {
+                flags: 'a'
+            })
+            this.logger = (new console.Console(stream))
+            // this.bind(new console.Console(stream))
+            resolve(this.logger)
+        });
+    }
+}
 if (!String.prototype.replaceAll) {
     String.prototype.replaceAll = function (str, newStr) {
 
@@ -98,7 +120,7 @@ async function fetchItemFromHTML(html) {
         splittedContent
     }
 }
-async function main() {
+async function downloadItems() {
     const links = JSON.parse(await fs.readFileSync('outputLinks.json'))
     console.log("🚀 ~ file: main.js ~ line 43 ~ main ~ links", links[0])
     const resultArray = []
@@ -119,4 +141,66 @@ async function main() {
     await fs.writeFileSync('result.json', JSON.stringify(resultArray));
 }
 
-main()
+// main()
+function flatFromKeyValue(payload) {
+    return payload.reduce((acc, { key, val }) => {
+        acc[key] = val
+        return acc
+    }, {})
+}
+
+function remakeItem({ moneyOptions, characteristics, splittedContent, ...otherProperties }) {
+    // console.log("🚀 ~ file: main.js ~ line 164 ~ remakeItem ~ otherProperties", otherProperties)
+    // console.log("🚀 ~ file: main.js ~ line 164 ~ remakeItem ~ characteristics", )
+    // console.log("🚀 ~ file: main.js ~ line 164 ~ remakeItem ~ moneyOptions",)
+    // console.log("🚀 ~ file: main.js ~ line 159 ~ remakeItem ~ payload", payload)
+    return {
+        ...otherProperties,
+        ...flatFromKeyValue(characteristics),
+        ...flatFromKeyValue(moneyOptions)
+    }
+}
+function getAllKeys(payload){
+    const keysSet = new Set()
+    for(let item of payload){
+        Object.keys(item).forEach(it=>keysSet.add(it))
+        // keysSet.add(...Object.keys(item))
+    }
+    
+    return Array.from(keysSet)
+}
+async function remake() {
+    const createCsvWriter = csvWriter.createObjectCsvWriter;
+
+    const logger = await new Logger("remake", "logs")
+    const items = JSON.parse(await fs.readFileSync("./result.json"))
+    // console.log("🚀 ~ file: main.js ~ line 159 ~ remake ~ items", items[0])
+    const transformedItems = items.map(item => remakeItem(item))
+    const headers = getAllKeys(transformedItems)
+    const csvWriterInstance = createCsvWriter({
+        path: 'output.csv',
+        header: headers.map(item => {
+            return {
+                id: item,
+                title: item
+            }
+        })
+    });
+    await csvWriterInstance.writeRecords(transformedItems)
+    console.log("🚀 ~ file: main.js ~ line 182 ~ remake ~ transformedItems")
+}
+remake()
+
+async function writeToCSV({headers,path}) {
+    let itemsNew = []
+    const csvWriter = createCsvWriter({
+        path: 'outputChisto.v2.csv',
+        // header: headers.map(item => {
+        //     return {
+        //         id: item,
+        //         title: item
+        //     }
+        // })
+    });
+    await csvWriter.writeRecords(payload)
+}
