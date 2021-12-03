@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "dependencies": {
+    "axios": "^0.24.0",
+    "cheerio": "^1.0.0-rc.10",
+    "puppeteer": "^12.0.1"
+  },
+  "name": "parser",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "inoisy <inoisy@bk.ru>",
+  "license": "MIT"
+}
